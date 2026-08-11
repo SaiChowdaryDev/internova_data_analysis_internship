@@ -2,7 +2,7 @@
 Data analysis projects and tasks completed during my Internova internship.
 Internova Data Analysis Internship
 
-This repository contains the tasks, projects, source code, datasets, and analysis completed as part of my Internova Data Analysis Internship.
+This repository contains the tasks, projects, source code, and analysis completed as part of my Internova Data Analysis Internship.
 
 Weekly Tasks
 Week 1: Python Fundamentals for Data Analytics
