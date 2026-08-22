@@ -3,7 +3,7 @@
 ## Overview
 
 This week focuses on SQL and Microsoft Excel skills used in Data Analytics.
-
+ 
 ## Objectives
 
 - Retrieve and analyze data using SQL
@@ -18,7 +18,7 @@ This week focuses on SQL and Microsoft Excel skills used in Data Analytics.
 
 ## Tasks
 
-### SQL
+### SQL(structured query language)
 
 - Task 1 – Introduction to Databases & SELECT Statement
 - Task 2 – WHERE, ORDER BY & Aggregate Functions
