@@ -1,1 +1,11 @@
-
+Student_ID,Name,Branch,Study_Hours,Attendance,Marks
+101,Arun,CSE,3,75,65
+102,Rahul,ECE,4,80,70
+103,Priya,CSE,5,85,75
+104,Sneha,EEE,4,78,68
+105,Kiran,CSE,6,90,82
+106,Ravi,ECE,5,82,74
+107,Anjali,CSE,7,95,90
+108,Vijay,EEE,3,70,60
+109,Neha,ECE,6,88,80
+110,Manoj,CSE,8,92,94
