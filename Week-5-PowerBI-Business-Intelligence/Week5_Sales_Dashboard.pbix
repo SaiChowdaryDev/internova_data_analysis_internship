@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sales Performance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0f1420;
+    --panel:#161d2e;
+    --panel-border:#232b40;
+    --text:#e8ecf5;
+    --muted:#8b93a7;
+    --accent:#2fd4c8;
+    --accent2:#4d7cfe;
+    --accent3:#f5a623;
+    --electronics:#2fd4c8;
+    --furniture:#4d7cfe;
+    --stationery:#f5a623;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Tahoma, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:24px;
+  }
+  .header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .header h1{
+    font-size:26px;
+    margin:0;
+    font-weight:600;
+    letter-spacing:0.2px;
+  }
+  .header p{
+    margin:4px 0 0;
+    color:var(--muted);
+    font-size:13px;
+  }
+  .filters{
+    display:flex;
+    gap:10px;
+  }
+  select{
+    background:var(--panel);
+    color:var(--text);
+    border:1px solid var(--panel-border);
+    border-radius:6px;
+    padding:8px 12px;
+    font-size:13px;
+  }
+  .kpi-row{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:14px;
+    margin-bottom:16px;
+  }
+  .kpi{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:10px;
+    padding:16px 18px;
+  }
+  .kpi .label{
+    color:var(--muted);
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+  }
+  .kpi .value{
+    font-size:24px;
+    font-weight:700;
+    margin-top:6px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:1.2fr 1fr;
+    gap:14px;
+    margin-bottom:14px;
+  }
+  .grid3{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-bottom:14px;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:10px;
+    padding:16px;
+  }
+  .panel h3{
+    margin:0 0 12px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--text);
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  th,td{
+    text-align:left;
+    padding:8px 6px;
+    border-bottom:1px solid var(--panel-border);
+  }
+  th{
+    color:var(--muted);
+    font-weight:600;
+    font-size:11px;
+    text-transform:uppercase;
+  }
+  .chart-wrap{
+    position:relative;
+    height:220px;
+  }
+  .footer-note{
+    color:var(--muted);
+    font-size:11px;
+    margin-top:10px;
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Sales Performance Dashboard</h1>
+    <p>Jan 2026 – May 2026 · Source: sales_data.csv, products.csv, customers.csv</p>
+  </div>
+  <div class="filters">
+    <select id="regionFilter"><option value="All">All Regions</option></select>
+    <select id="categoryFilter"><option value="All">All Categories</option></select>
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="label">Total Sales</div><div class="value" id="kpiTotalSales">-</div></div>
+  <div class="kpi"><div class="label">Total Orders</div><div class="value" id="kpiTotalOrders">-</div></div>
+  <div class="kpi"><div class="label">Avg Order Value</div><div class="value" id="kpiAOV">-</div></div>
+  <div class="kpi"><div class="label">Maximum Sale</div><div class="value" id="kpiMax">-</div></div>
+  <div class="kpi"><div class="label">Minimum Sale</div><div class="value" id="kpiMin">-</div></div>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <h3>Sales Trend by Month</h3>
+    <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h3>Sales Distribution by Category</h3>
+    <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+  </div>
+</div>
+
+<div class="grid3">
+  <div class="panel">
+    <h3>Sales by Category</h3>
+    <div class="chart-wrap"><canvas id="catChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h3>Sales by Region</h3>
+    <div class="chart-wrap"><canvas id="regionChart"></canvas></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Product-Level Detail</h3>
+  <table id="productTable">
+    <thead><tr><th>Product</th><th>Category</th><th>Quantity</th><th>Sales</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div class="footer-note">All figures computed directly from the uploaded CSV files. No values invented.</div>
+
+<script>
+// ---- Raw data (from uploaded CSVs) ----
+const sales = [
+{Order_ID:1001,Order_Date:"2026-01-05",Product_ID:"P101",Customer_ID:"C001",Region:"North",Category:"Electronics",Quantity:2,Sales:1200},
+{Order_ID:1002,Order_Date:"2026-01-08",Product_ID:"P102",Customer_ID:"C002",Region:"South",Category:"Electronics",Quantity:1,Sales:850},
+{Order_ID:1003,Order_Date:"2026-01-12",Product_ID:"P103",Customer_ID:"C003",Region:"East",Category:"Furniture",Quantity:3,Sales:450},
+{Order_ID:1004,Order_Date:"2026-01-18",Product_ID:"P104",Customer_ID:"C004",Region:"West",Category:"Stationery",Quantity:5,Sales:300},
+{Order_ID:1005,Order_Date:"2026-01-25",Product_ID:"P105",Customer_ID:"C005",Region:"North",Category:"Furniture",Quantity:2,Sales:700},
+{Order_ID:1006,Order_Date:"2026-02-03",Product_ID:"P101",Customer_ID:"C006",Region:"South",Category:"Electronics",Quantity:1,Sales:1200},
+{Order_ID:1007,Order_Date:"2026-02-09",Product_ID:"P106",Customer_ID:"C007",Region:"East",Category:"Stationery",Quantity:8,Sales:480},
+{Order_ID:1008,Order_Date:"2026-02-15",Product_ID:"P107",Customer_ID:"C008",Region:"West",Category:"Electronics",Quantity:2,Sales:1600},
+{Order_ID:1009,Order_Date:"2026-02-22",Product_ID:"P108",Customer_ID:"C009",Region:"North",Category:"Furniture",Quantity:1,Sales:950},
+{Order_ID:1010,Order_Date:"2026-03-04",Product_ID:"P102",Customer_ID:"C010",Region:"South",Category:"Electronics",Quantity:3,Sales:2550},
+{Order_ID:1011,Order_Date:"2026-03-11",Product_ID:"P103",Customer_ID:"C001",Region:"East",Category:"Furniture",Quantity:2,Sales:300},
+{Order_ID:1012,Order_Date:"2026-03-19",Product_ID:"P104",Customer_ID:"C002",Region:"West",Category:"Stationery",Quantity:10,Sales:600},
+{Order_ID:1013,Order_Date:"2026-03-26",Product_ID:"P105",Customer_ID:"C003",Region:"North",Category:"Furniture",Quantity:4,Sales:1400},
+{Order_ID:1014,Order_Date:"2026-04-06",Product_ID:"P106",Customer_ID:"C004",Region:"South",Category:"Stationery",Quantity:6,Sales:360},
+{Order_ID:1015,Order_Date:"2026-04-14",Product_ID:"P107",Customer_ID:"C005",Region:"East",Category:"Electronics",Quantity:1,Sales:800},
+{Order_ID:1016,Order_Date:"2026-04-21",Product_ID:"P108",Customer_ID:"C006",Region:"West",Category:"Furniture",Quantity:2,Sales:1900},
+{Order_ID:1017,Order_Date:"2026-05-03",Product_ID:"P101",Customer_ID:"C007",Region:"North",Category:"Electronics",Quantity:2,Sales:2400},
+{Order_ID:1018,Order_Date:"2026-05-10",Product_ID:"P102",Customer_ID:"C008",Region:"South",Category:"Electronics",Quantity:2,Sales:1700},
+{Order_ID:1019,Order_Date:"2026-05-18",Product_ID:"P103",Customer_ID:"C009",Region:"East",Category:"Furniture",Quantity:5,Sales:750},
+{Order_ID:1020,Order_Date:"2026-05-27",Product_ID:"P104",Customer_ID:"C010",Region:"West",Category:"Stationery",Quantity:7,Sales:420}
+];
+const products = {
+"P101":{name:"Laptop",category:"Electronics"},
+"P102":{name:"Monitor",category:"Electronics"},
+"P103":{name:"Office Chair",category:"Furniture"},
+"P104":{name:"Notebook Pack",category:"Stationery"},
+"P105":{name:"Desk",category:"Furniture"},
+"P106":{name:"Pen Set",category:"Stationery"},
+"P107":{name:"Headphones",category:"Electronics"},
+"P108":{name:"Bookshelf",category:"Furniture"}
+};
+
+const catColors = {Electronics:"#2fd4c8", Furniture:"#4d7cfe", Stationery:"#f5a623"};
+const regions = [...new Set(sales.map(s=>s.Region))].sort();
+const categories = [...new Set(sales.map(s=>s.Category))].sort();
+
+const regionSel = document.getElementById('regionFilter');
+const catSel = document.getElementById('categoryFilter');
+regions.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;regionSel.appendChild(o);});
+categories.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;catSel.appendChild(o);});
+
+let trendChart, donutChart, catChart, regionChart;
+
+function fmt(n){ return "₹" + Math.round(n).toLocaleString('en-IN'); }
+
+function getFiltered(){
+  const r = regionSel.value, c = catSel.value;
+  return sales.filter(s => (r==="All"||s.Region===r) && (c==="All"||s.Category===c));
+}
+
+function monthLabel(dateStr){
+  const d = new Date(dateStr);
+  return d.toLocaleString('en-US',{month:'short', year:'numeric'});
+}
+
+function render(){
+  const data = getFiltered();
+
+  const totalSales = data.reduce((a,s)=>a+s.Sales,0);
+  const totalOrders = new Set(data.map(s=>s.Order_ID)).size;
+  const aov = totalOrders ? totalSales/totalOrders : 0;
+  const maxSale = data.length ? Math.max(...data.map(s=>s.Sales)) : 0;
+  const minSale = data.length ? Math.min(...data.map(s=>s.Sales)) : 0;
+
+  document.getElementById('kpiTotalSales').textContent = fmt(totalSales);
+  document.getElementById('kpiTotalOrders').textContent = totalOrders;
+  document.getElementById('kpiAOV').textContent = fmt(aov);
+  document.getElementById('kpiMax').textContent = fmt(maxSale);
+  document.getElementById('kpiMin').textContent = fmt(minSale);
+
+  // by category
+  const byCat = {};
+  data.forEach(s=>{ byCat[s.Category] = (byCat[s.Category]||0) + s.Sales; });
+  const catLabels = Object.keys(byCat);
+  const catValues = catLabels.map(l=>byCat[l]);
+  const catBarColors = catLabels.map(l=>catColors[l]||"#888");
+
+  // by region
+  const byRegion = {};
+  data.forEach(s=>{ byRegion[s.Region] = (byRegion[s.Region]||0) + s.Sales; });
+  const regionLabels = Object.keys(byRegion).sort((a,b)=>byRegion[b]-byRegion[a]);
+  const regionValues = regionLabels.map(l=>byRegion[l]);
+
+  // by month
+  const byMonth = {};
+  data.forEach(s=>{ const m = monthLabel(s.Order_Date); byMonth[m] = (byMonth[m]||0) + s.Sales; });
+  const monthOrder = [...new Set(data.map(s=>s.Order_Date))].sort().map(monthLabel);
+  const monthLabels = [...new Set(monthOrder)];
+  const monthValues = monthLabels.map(l=>byMonth[l]);
+
+  // table (product level)
+  const byProduct = {};
+  data.forEach(s=>{
+    const p = products[s.Product_ID];
+    const key = p.name;
+    if(!byProduct[key]) byProduct[key] = {category:p.category, qty:0, sales:0};
+    byProduct[key].qty += s.Quantity;
+    byProduct[key].sales += s.Sales;
+  });
+  const tbody = document.querySelector('#productTable tbody');
+  tbody.innerHTML = '';
+  Object.entries(byProduct).sort((a,b)=>b[1].sales-a[1].sales).forEach(([name,v])=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${name}</td><td>${v.category}</td><td>${v.qty}</td><td>${fmt(v.sales)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const commonOpts = {
+    plugins:{ legend:{ labels:{ color:'#8b93a7' } } },
+    scales:{
+      x:{ ticks:{color:'#8b93a7'}, grid:{color:'#232b40'} },
+      y:{ ticks:{color:'#8b93a7'}, grid:{color:'#232b40'} }
+    }
+  };
+
+  if(catChart) catChart.destroy();
+  catChart = new Chart(document.getElementById('catChart'), {
+    type:'bar',
+    data:{ labels:catLabels, datasets:[{label:'Sales', data:catValues, backgroundColor:catBarColors, borderRadius:4}] },
+    options:{ ...commonOpts, plugins:{legend:{display:false}}, maintainAspectRatio:false }
+  });
+
+  if(regionChart) regionChart.destroy();
+  regionChart = new Chart(document.getElementById('regionChart'), {
+    type:'bar',
+    data:{ labels:regionLabels, datasets:[{label:'Sales', data:regionValues, backgroundColor:'#4d7cfe', borderRadius:4}] },
+    options:{ ...commonOpts, indexAxis:'y', plugins:{legend:{display:false}}, maintainAspectRatio:false }
+  });
+
+  if(trendChart) trendChart.destroy();
+  trendChart = new Chart(document.getElementById('trendChart'), {
+    type:'line',
+    data:{ labels:monthLabels, datasets:[{label:'Sales', data:monthValues, borderColor:'#2fd4c8', backgroundColor:'rgba(47,212,200,0.15)', fill:true, tension:0.3, pointBackgroundColor:'#2fd4c8'}] },
+    options:{ ...commonOpts, plugins:{legend:{display:false}}, maintainAspectRatio:false }
+  });
+
+  if(donutChart) donutChart.destroy();
+  donutChart = new Chart(document.getElementById('donutChart'), {
+    type:'doughnut',
+    data:{ labels:catLabels, datasets:[{data:catValues, backgroundColor:catBarColors, borderColor:'#161d2e', borderWidth:2}] },
+    options:{ plugins:{legend:{position:'bottom', labels:{color:'#8b93a7'}}}, maintainAspectRatio:false }
+  });
+}
+
+regionSel.addEventListener('change', render);
+catSel.addEventListener('change', render);
+render();
+</script>
+
+</body>
+</html>
